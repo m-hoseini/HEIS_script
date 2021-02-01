@@ -1268,7 +1268,7 @@ RHH94 <- r94data %>%
   left_join(r_incomeSum, by = "Address") %>%
   left_join(r_NMincome, by = "Address") %>%
   left_join(R94P2) %>%
-  mutate(across(income_w_y:income_nm_nonagriculture, ~replace_na(.x, 0)))
+  mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 UHH94 <- u94data %>% 
   mutate(urban = "U") %>%
@@ -1279,7 +1279,7 @@ UHH94 <- u94data %>%
   left_join(u_incomeSum, by = "Address") %>%
   left_join(u_NMincome, by = "Address") %>%
   left_join(U94P2) %>%
-  mutate(across(income_w_y:income_nm_nonagriculture, ~replace_na(.x, 0)))
+  mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 HH94 <- bind_rows(RHH94, UHH94) %>%
   mutate(urban = as.factor(urban)) %>%
@@ -1329,5 +1329,5 @@ saveRDS(HH94, file = "./exported/HH94.Rds")
 
 df <- readRDS("./exported/HH94.Rds") # Specify the Rds file to convert here
 
-#haven::write_dta(df, "./exported/HH98.dta") # to export in STATA
-#write_csv2(df, "./exported/HH98.csv") # to export in CSV
+#haven::write_dta(df, "./exported/HH94.dta") # to export in STATA
+#write_csv2(df, "./exported/HH94.csv") # to export in CSV

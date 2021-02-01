@@ -1204,7 +1204,7 @@ RHH97 <- r97data %>%
   left_join(r_incomeSum, by = "Address") %>%
   left_join(r_NMincome, by = "Address") %>%
   left_join(R97P2) %>%
-  mutate(across(income_w_y:income_nm_nonagriculture, ~replace_na(.x, 0)))
+  mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 UHH97 <- u97data %>% 
   mutate(urban = "U") %>%
@@ -1215,7 +1215,7 @@ UHH97 <- u97data %>%
   left_join(u_incomeSum, by = "Address") %>%
   left_join(u_NMincome, by = "Address") %>%
   left_join(U97P2) %>%
-  mutate(across(income_w_y:income_nm_nonagriculture, ~replace_na(.x, 0)))
+  mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 HH97 <- bind_rows(RHH97, UHH97) %>%
   mutate(urban = as.factor(urban)) %>%

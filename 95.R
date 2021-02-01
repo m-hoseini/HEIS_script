@@ -1243,7 +1243,7 @@ RHH95 <- r95data %>%
   left_join(r_incomeSum, by = "Address") %>%
   left_join(r_NMincome, by = "Address") %>%
   left_join(R95P2, by = "Address") %>%
-  mutate(across(income_w_y:income_nm_nonagriculture, ~replace_na(.x, 0)))
+  mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 UHH95 <- u95data %>% 
   mutate(urban = "U") %>%
@@ -1254,7 +1254,7 @@ UHH95 <- u95data %>%
   left_join(u_incomeSum, by = "Address") %>%
   left_join(u_NMincome, by = "Address") %>%
   left_join(U95P2, by = "Address") %>%
-  mutate(across(income_w_y:income_nm_nonagriculture, ~replace_na(.x, 0)))
+  mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 HH95 <- bind_rows(RHH95, UHH95) %>%
   mutate(urban = as.factor(urban)) %>%
