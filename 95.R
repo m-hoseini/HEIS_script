@@ -1122,7 +1122,7 @@ r95p3 <- R95P3 %>%
   pivot_wider(Address, 
               names_from = "Table", 
               values_from = c("cost","cost_r"), 
-              values_fill = list(cost = 0))
+              values_fill = list(cost = 0, cost_r = 0))
 
 u95p3 <- U95P3 %>%
   mutate(Table = case_when(
@@ -1146,7 +1146,7 @@ u95p3 <- U95P3 %>%
   pivot_wider(Address, 
               names_from = "Table", 
               values_from = c("cost","cost_r"), 
-              values_fill = list(cost = 0))
+              values_fill = list(cost = 0, cost_r = 0))
 
 # Non-monetary household income
 r_NM_housing <- R95P3S04 %>%
