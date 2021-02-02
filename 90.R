@@ -1252,7 +1252,7 @@ u_NMincome[is.na(u_NMincome)] <- 0
 # sum of household income with data.table
 
 DT <- data.table(Rind90)
-DT <- DT[,.('income_w_y'= sum(income_w_m, na.rm = T),
+DT <- DT[,.('income_w_y'= sum(income_w_y, na.rm = T),
             'income_s_y'= sum(income_s_y, na.rm = T),
             'netincome_w_m'= sum(netincome_w_m, na.rm = T),
             'netincome_w_y'= sum(income_w_y, na.rm = T),

@@ -1076,7 +1076,7 @@ r89p3 <- R89P3 %>%
   pivot_wider(Address, 
               names_from = "Table", 
               values_from = c("cost","cost_r"), 
-              values_fill = list(cost = 0))
+              values_fill = list(cost = 0, cost_r = 0))
 
 u89p3 <- U89P3 %>%
   mutate(Table = case_when(
@@ -1100,7 +1100,7 @@ u89p3 <- U89P3 %>%
   pivot_wider(Address, 
               names_from = "Table", 
               values_from = c("cost","cost_r"), 
-              values_fill = list(cost = 0))
+              values_fill = list(cost = 0, cost_r = 0))
 
 # Non-monetary household income
 r_NM_housing <- R89P3S04 %>%
@@ -1158,7 +1158,7 @@ u_NMincome[is.na(u_NMincome)] <- 0
 # sum of household income with data.table
 names(Rind89)
 DT <- data.table(Rind89)
-DT <- DT[,.('income_w_y'= sum(income_w_m, na.rm = T),
+DT <- DT[,.('income_w_y'= sum(income_w_y, na.rm = T),
             'income_s_y'= sum(income_s_y, na.rm = T),
             'netincome_w_m'= sum(netincome_w_m, na.rm = T),
             'netincome_w_y'= sum(income_w_y, na.rm = T),
@@ -1197,7 +1197,7 @@ RHH89 <- r89data %>%
   left_join(r_incomeSum, by = "Address") %>%
   left_join(r_NMincome, by = "Address") %>%
   left_join(R89P2) %>%
-  mutate(across(income_w_y:income_nm_nonagriculture, ~replace_na(.x, 0)))
+  mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 UHH89 <- u89data %>% 
   mutate(urban = "U") %>%
@@ -1208,7 +1208,7 @@ UHH89 <- u89data %>%
   left_join(u_incomeSum, by = "Address") %>%
   left_join(u_NMincome, by = "Address") %>%
   left_join(U89P2) %>%
-  mutate(across(income_w_y:income_nm_nonagriculture, ~replace_na(.x, 0)))
+  mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 HH89 <- bind_rows(RHH89, UHH89) %>%
   mutate(urban = as.factor(urban)) %>%
