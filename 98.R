@@ -42,16 +42,16 @@ R98P1 <- R98P1 %>%
     age = DYCOL05,
     literacy = DYCOL06,
     studying = DYCOL07,
-    degree = DYCOL08,
+    education = DYCOL08,
     occupationalst = DYCOL09,
     maritalst = DYCOL10) %>% 
   mutate(across(where(is.character), as.integer),
-         across(c(relation,gender,literacy,studying,degree,occupationalst,maritalst), as.factor),
+         across(c(relation,gender,literacy,studying,education,occupationalst,maritalst), as.factor),
          relation = fct_recode(relation, !!!relation), 
          gender = fct_recode(gender, !!!gender),
          literacy = fct_recode(literacy, !!!literacy), 
          studying = fct_recode(studying, !!!yesno),
-         degree = fct_recode(degree, !!!education), 
+         education = fct_recode(education, !!!education), 
          occupationalst = fct_recode(occupationalst, !!!occupation),
          maritalst = fct_recode(maritalst, !!!marital))
 
@@ -63,16 +63,16 @@ U98P1 <- U98P1 %>%
     age = DYCOL05,
     literacy = DYCOL06,
     studying = DYCOL07,
-    degree = DYCOL08,
+    education = DYCOL08,
     occupationalst = DYCOL09,
     maritalst = DYCOL10 ) %>% 
   mutate(across(where(is.character), as.integer),
-         across(c(relation,gender,literacy,studying,degree,occupationalst,maritalst), as.factor),
+         across(c(relation,gender,literacy,studying,education,occupationalst,maritalst), as.factor),
          relation = fct_recode(relation, !!!relation), 
          gender = fct_recode(gender, !!!gender),
          literacy = fct_recode(literacy, !!!literacy), 
          studying = fct_recode(studying, !!!yesno),
-         degree = fct_recode(degree, !!!education), 
+         education = fct_recode(education, !!!education), 
          occupationalst = fct_recode(occupationalst, !!!occupation),
          maritalst = fct_recode(maritalst, !!!marital))
 
@@ -1032,7 +1032,13 @@ Uind98 <- u98data %>%
 
 IND98 <- bind_rows(Rind98,Uind98) %>%
   mutate(urban = as.factor(urban),
-         DYCOL00 = NA_integer_ ) %>%
+         DYCOL00 = NA_integer_ ,
+         employed_w = factor(employed_w, levels = c(1,2), labels = c("Yes","No")),
+         status_w = factor(status_w, levels = c(1,2,3), labels = c("public","cooperative","private")),
+         employed_s = factor(employed_s, levels = c(1,2), labels = c("Yes","No")),
+         status_s = factor(status_s, levels = c(4,5,6), labels = c("employer","selfemployed","familyworker")),
+         agriculture = factor(agriculture, levels = c(1,2), labels = c("agriculture","nonagriculture"))
+         ) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   select(Address:urban, cpi_m = cpi, cpi_y) %>%
@@ -1050,7 +1056,7 @@ attr(IND98$netincome_w_y, "label") <- "wage earning job: net income previous yea
 attr(IND98$employed_s, "label") <- "Whether employed in non-wage job?"
 attr(IND98$ISIC_s, "label") <- "Industry code of non-wage job"
 attr(IND98$ISCO_s, "label") <- "Occupation code of non-wage job"
-attr(IND98$status_s, "label") <- "job status: 4-employer 2-selfemployed 3-familyworker"
+attr(IND98$status_s, "label") <- "job status: 4-employer 5-selfemployed 6-familyworker"
 attr(IND98$hours_s, "label") <- "non-wage job: hours per day"
 attr(IND98$days_s, "label") <- "non-wage job: day per week"
 attr(IND98$income_s_y, "label") <- "non-wage job: net income previous year"
@@ -1144,12 +1150,12 @@ u98p3 <- U98P3 %>%
 r_NM_housing <- R98P3S04 %>%
   filter(DYCOL00 %/% 1000 == 42) %>%
   group_by(Address) %>%
-  summarize(income_nm_house = sum(value, na.rm = T))
+  summarize(income_nm_house = sum(value*12, na.rm = T))
 
 u_NM_housing <- U98P3S04 %>%
   filter(DYCOL00 %/% 1000 == 42) %>%
   group_by(Address) %>%
-  summarize(income_nm_house = sum(value, na.rm = T))
+  summarize(income_nm_house = sum(value*12, na.rm = T))
 
 r_NMincome <- R98P3 %>%
   mutate(type = case_when(
@@ -1158,9 +1164,10 @@ r_NMincome <- R98P3 %>%
     purchased == 6 ~ "agriculture",
     purchased == 7 ~ "nonagriculture", 
     purchased %in% c(2,8) ~ "miscellaneous",
-    TRUE ~ NA_character_)) %>%
+    TRUE ~ NA_character_),
+    recallperiod=ifelse(table>12,1,12)) %>%
   group_by(Address, type) %>%
-  summarize(value = sum(value, na.rm = T)) %>%
+  summarize(value = sum(value*recallperiod, na.rm = T)) %>%
   filter(!is.na(type)&value!=0) %>% 
   pivot_wider(Address, 
               names_from="type", names_prefix = "income_nm_", 
@@ -1175,9 +1182,10 @@ u_NMincome <- U98P3 %>%
     purchased == 6 ~ "agriculture",
     purchased == 7 ~ "nonagriculture", 
     purchased %in% c(2,8) ~ "miscellaneous",
-    TRUE ~ NA_character_)) %>%
+    TRUE ~ NA_character_),
+    recallperiod=ifelse(table>12,1,12)) %>%
   group_by(Address, type) %>%
-  summarize(value = sum(value, na.rm = T)) %>%
+  summarize(value = sum(value*recallperiod, na.rm = T)) %>%
   filter(!is.na(type)&value!=0) %>% 
   pivot_wider(Address, 
               names_from="type", names_prefix = "income_nm_", 
@@ -1270,7 +1278,7 @@ attr(HH98$employeds, "label") <- "Number of employed members"
 attr(HH98$gender, "label") <- "Head's gender"
 attr(HH98$age, "label") <- "Head's age"
 attr(HH98$literacy, "label") <- "Head's literacy"
-attr(HH98$degree, "label") <- "Head's degree"
+attr(HH98$education, "label") <- "Head's education"
 attr(HH98$occupationalst, "label") <- "Head's job status"
 attr(HH98$maritalst, "label") <- "Head's marital status"
 attr(HH98$ISIC_w, "label") <- "Head's Industry code of wage-earning job"

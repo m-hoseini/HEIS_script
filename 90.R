@@ -15,19 +15,19 @@ Province <- c(Markazi="00", Gilan="01", Mazandaran="02", AzarbaijanSharghi="03",
               Golestan="27", KhorasanShomali="28", KhorasanJonoubi="29", Alborz="30")
 
 
-R90_weight<-Sum_R90%>%select(ADDRESS, weight)%>%rename(Address = ADDRESS)%>%mutate_if(is.character, as.numeric)
+R90_weight<-Sum_R90%>%select(ADDRESS, weight) %>%rename(Address = ADDRESS) %>%mutate_if(is.character, as.numeric)
 R90Data <- R90Data %>% 
   rename(month = MahMorajeh, khanevartype = NoeKhn) %>%
   mutate(province = fct_recode(as.factor(substr(Address, 2, 3)), !!!Province),
-         town = as.integer(substr(Address, 4, 5)))%>%
+         town = as.integer(substr(Address, 4, 5))) %>%
   left_join(R90_weight)
 
 
-U90_weight<-Sum_U90%>%select(ADDRESS, weight)%>%rename(Address = ADDRESS)%>%mutate_if(is.character, as.numeric)
+U90_weight<-Sum_U90%>%select(ADDRESS, weight) %>%rename(Address = ADDRESS) %>%mutate_if(is.character, as.numeric)
 U90Data <- U90Data %>% 
   rename(month = MahMorajeh, khanevartype = NoeKhn) %>%
   mutate(province = fct_recode(as.factor(substr(Address, 2, 3)), !!!Province),
-         town = as.integer(substr(Address, 4, 5)))%>%
+         town = as.integer(substr(Address, 4, 5))) %>%
   left_join(U90_weight)
 
 ##############################
@@ -36,13 +36,11 @@ U90Data <- U90Data %>%
 
 relation <- c(Head="1", Spouse="2", Child="3", SonDaughter_inLaw="4", GrandSonDaughter="5", Parent="6", Sibling="7", OtherRelative="8", NonRelative="9")
 gender <- c(Male="1", Female="2")
-literacy <- c(literate="1", illiterate="2")
-yesno <- c(Yes="1", No="2")
-education <- c(Elemantry="1", Secondary="2", HighSchool="3", Diploma="4", College="5", Bachelor="6", Master="7", PhD="8", Other="9")
+literacy <- c(literate="1", illiterate="2", NULL="", NULL="-", NULL=" ")
+yesno <- c(Yes="1", No="2", NULL="", NULL="-", NULL=" ")
 occupation <- c(employed="1", unemployed="2", IncomeWOJob="3", Student="4", Housewife="5", Other="6")
 marital <- c(Married ="1", Widowed="2", Divorced="3", Single="4")
 
-R90P1$DYCOL08 <- as.numeric(substr(sprintf("%03d", as.numeric(levels(R90P1$DYCOL08))[R90P1$DYCOL08]),1,1))
 R90P1 <- R90P1 %>% 
   rename(
     member = DYCOL01,
@@ -60,11 +58,23 @@ R90P1 <- R90P1 %>%
          gender = fct_recode(gender, !!!gender),
          literacy = fct_recode(literacy, !!!literacy), 
          studying = fct_recode(studying, !!!yesno),
-         degree = fct_recode(degree, !!!education), 
          occupationalst = fct_recode(occupationalst, !!!occupation),
-         maritalst = fct_recode(maritalst, !!!marital))
+         maritalst = fct_recode(maritalst, !!!marital),
+         education = fct_relevel(as.factor(case_when(
+           str_sub(degree,1,1)=="1"| ( studying == "No" & degree %in% c("210","211","212","213") ) ~ "Elemantry",
+           ( degree %in% c("214","215","216","217","220","221","222") ) | 
+             ( studying == "No" & degree %in% c("311","312","321","323","31A","31a","32A","32a","316","325","31B","32B","31b","32b","318","327") ) | 
+             (str_sub(degree,1,1)=="2" & studying == "Yes") ~ "Secondary", 
+           ( studying == "Yes" & degree %in% c("311","312","321","323","31A","31a","32A","32a","316","325","31B","32B","31b","32b","318","327") ) ~ "HighSchool", 
+           degree %in% c("313","314","315","322","324","300","301","317","326","302","319","328","303") ~ "Diploma", 
+           degree %in% c("521","522") ~ "College",
+           degree %in% c("511","512") ~ "Bachelor",
+           degree %in% c("513","514","516","517") ~ "Master",
+           degree %in% c("601","602","603","604") ~ "PhD",
+           str_sub(degree,1,1)=="9"| degree %in% c("515","510","520","310","605","606") ~ "Other",
+           TRUE ~ NA_character_)), 
+           "Elemantry","Secondary","HighSchool","Diploma","College","Bachelor","Master","PhD"))
 
-U90P1$DYCOL08 <- as.numeric(substr(sprintf("%03d", as.numeric(levels(U90P1$DYCOL08))[U90P1$DYCOL08]),1,1))
 U90P1 <- U90P1 %>% 
   rename(
     member = DYCOL01,
@@ -82,9 +92,23 @@ U90P1 <- U90P1 %>%
          gender = fct_recode(gender, !!!gender),
          literacy = fct_recode(literacy, !!!literacy), 
          studying = fct_recode(studying, !!!yesno),
-         degree = fct_recode(degree, !!!education), 
          occupationalst = fct_recode(occupationalst, !!!occupation),
-         maritalst = fct_recode(maritalst, !!!marital))
+         maritalst = fct_recode(maritalst, !!!marital),
+         education = fct_relevel(as.factor(case_when(
+           str_sub(degree,1,1)=="1"| ( studying == "No" & degree %in% c("210","211","212","213") ) ~ "Elemantry",
+           ( degree %in% c("214","215","216","217","220","221","222") ) | 
+             ( studying == "No" & degree %in% c("311","312","321","323","31A","31a","32A","32a","316","325","31B","32B","31b","32b","318","327") ) | 
+             (str_sub(degree,1,1)=="2" & studying == "Yes") ~ "Secondary", 
+           ( studying == "Yes" & degree %in% c("311","312","321","323","31A","31a","32A","32a","316","325","31B","32B","31b","32b","318","327") ) ~ "HighSchool", 
+           degree %in% c("313","314","315","322","324","300","301","317","326","302","319","328","303") ~ "Diploma", 
+           degree %in% c("521","522") ~ "College",
+           degree %in% c("511","512") ~ "Bachelor",
+           degree %in% c("513","514","516","517") ~ "Master",
+           degree %in% c("601","602","603","604") ~ "PhD",
+           str_sub(degree,1,1)=="9"| degree %in% c("515","510","520","310","605","606") ~ "Other",
+           TRUE ~ NA_character_)), 
+           "Elemantry","Secondary","HighSchool","Diploma","College","Bachelor","Master","PhD")
+         )
 
 #######################################################################
 # Part 2
@@ -126,23 +150,39 @@ R90P2 <- R90P2 %>%
     evapcoolingportable = DYCOL25,
     splitportable = DYCOL26,
     dishwasher = DYCOL27,
-    none = DYCOL29,
-    pipewater = DYCOL30,
-    electricity = DYCOL31,
-    pipegas = DYCOL32,
-    telephone = DYCOL33,
-    internet  = DYCOL34,
-    bathroom = DYCOL35,
-    kitchen = DYCOL36,
-    evapcooling = DYCOL37,
-    centralcooling = DYCOL38,
-    centralheating = DYCOL39,
-    package = DYCOL40,
-    split = DYCOL41,
-    wastewater = DYCOL42,
-    cookingfuel = DYCOL43,
-    heatingfuel = DYCOL44,
-    waterheatingfuel = DYCOL45) %>%
+    none = DYCOL28,
+    pipewater = DYCOL29,
+    electricity = DYCOL30,
+    pipegas = DYCOL31,
+    telephone = DYCOL32,
+    internet  = DYCOL33,
+    bathroom = DYCOL34,
+    kitchen = DYCOL35,
+    evapcooling = DYCOL36,
+    centralcooling = DYCOL37,
+    centralheating = DYCOL38,
+    package = DYCOL39,
+    split = DYCOL40,
+    wastewater = DYCOL41,
+    cookingfuel = DYCOL42,
+    heatingfuel = DYCOL43,
+    waterheatingfuel = DYCOL44,
+    celebration_m = DYCOL45,
+    celebration_y = DYCOL46,
+    mourning_m = DYCOL47,
+    mourning_y = DYCOL48,
+    house_maintenance_m = DYCOL49,
+    house_maintenance_y = DYCOL50,
+    pilgrimage_m = DYCOL51,
+    pilgrimage_y = DYCOL52,
+    travel_abroad_m = DYCOL53,
+    travel_abroad_y = DYCOL54,
+    surgery_m = DYCOL55,
+    #surgery_y = DYCOL56,
+    occasions_other_m = DYCOL56,
+    occasions_other_y = DYCOL57,
+    none_2 = DYCOL58,
+    occasions_name = DYCOL59) %>%
   mutate(across(where(is.character), as.integer),
          across(c(tenure,material,cookingfuel,heatingfuel,waterheatingfuel), as.factor),
          tenure = fct_recode(tenure, !!!tenure), 
@@ -150,7 +190,7 @@ R90P2 <- R90P2 %>%
          cookingfuel = fct_recode(cookingfuel, !!!fuel), 
          heatingfuel = fct_recode(heatingfuel, !!!fuel1),
          waterheatingfuel = fct_recode(waterheatingfuel, !!!fuel2),
-         across(vehicle:wastewater, ~!is.na(.x)))
+         across(c(vehicle:wastewater,celebration_m:occasions_other_y), ~!is.na(.x)))
 
 U90P2 <- U90P2 %>%
   rename(
@@ -180,23 +220,39 @@ U90P2 <- U90P2 %>%
     evapcoolingportable = DYCOL25,
     splitportable = DYCOL26,
     dishwasher = DYCOL27,
-    none = DYCOL29,
-    pipewater = DYCOL30,
-    electricity = DYCOL31,
-    pipegas = DYCOL32,
-    telephone = DYCOL33,
-    internet  = DYCOL34,
-    bathroom = DYCOL35,
-    kitchen = DYCOL36,
-    evapcooling = DYCOL37,
-    centralcooling = DYCOL38,
-    centralheating = DYCOL39,
-    package = DYCOL40,
-    split = DYCOL41,
-    wastewater = DYCOL42,
-    cookingfuel = DYCOL43,
-    heatingfuel = DYCOL44,
-    waterheatingfuel = DYCOL45) %>%
+    none = DYCOL28,
+    pipewater = DYCOL29,
+    electricity = DYCOL30,
+    pipegas = DYCOL31,
+    telephone = DYCOL32,
+    internet  = DYCOL33,
+    bathroom = DYCOL34,
+    kitchen = DYCOL35,
+    evapcooling = DYCOL36,
+    centralcooling = DYCOL37,
+    centralheating = DYCOL38,
+    package = DYCOL39,
+    split = DYCOL40,
+    wastewater = DYCOL41,
+    cookingfuel = DYCOL42,
+    heatingfuel = DYCOL43,
+    waterheatingfuel = DYCOL44,
+    celebration_m = DYCOL45,
+    celebration_y = DYCOL46,
+    mourning_m = DYCOL47,
+    mourning_y = DYCOL48,
+    house_maintenance_m = DYCOL49,
+    house_maintenance_y = DYCOL50,
+    pilgrimage_m = DYCOL51,
+    pilgrimage_y = DYCOL52,
+    travel_abroad_m = DYCOL53,
+    travel_abroad_y = DYCOL54,
+    surgery_m = DYCOL55,
+    #surgery_y = DYCOL56,
+    occasions_other_m = DYCOL56,
+    occasions_other_y = DYCOL57,
+    none_2 = DYCOL58,
+    occasions_name = DYCOL59) %>%
   mutate(across(where(is.character), as.integer),
          across(c(tenure,material,cookingfuel,heatingfuel,waterheatingfuel), as.factor),
          tenure = fct_recode(tenure, !!!tenure), 
@@ -204,7 +260,7 @@ U90P2 <- U90P2 %>%
          cookingfuel = fct_recode(cookingfuel, !!!fuel), 
          heatingfuel = fct_recode(heatingfuel, !!!fuel1),
          waterheatingfuel = fct_recode(waterheatingfuel, !!!fuel2),
-         across(vehicle:wastewater, ~!is.na(.x)))
+         across(c(vehicle:wastewater,celebration_m:occasions_other_y), ~!is.na(.x)))
 
 ###################################
 # Part 3, Table 1
@@ -229,8 +285,7 @@ R90P3S01 <- R90P3S01 %>%
     gram = DYCOL03,
     kilogram = DYCOL04,
     price = DYCOL05,
-    value = DYCOL06
-  )%>%
+    value = DYCOL06) %>%
   mutate(DYCOL00 = case_when(
     code == 11319 ~ 11325L,
     code == 11321 ~ 11326L,
@@ -238,7 +293,7 @@ R90P3S01 <- R90P3S01 %>%
     code == 11323 ~ 11328L,
     TRUE ~ code),
     across(c(price,value,kilogram),  ~ as.numeric(as.character(.x)) ),
-    table = 1L)%>%
+    table = 1L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -255,8 +310,7 @@ U90P3S01 <- U90P3S01 %>%
     gram = DYCOL03,
     kilogram = DYCOL04,
     price = DYCOL05,
-    value = DYCOL06
-  )%>%
+    value = DYCOL06) %>%
   mutate(DYCOL00 = case_when(
     code == 11319 ~ 11325L,
     code == 11321 ~ 11326L,
@@ -264,7 +318,7 @@ U90P3S01 <- U90P3S01 %>%
     code == 11323 ~ 11328L,
     TRUE ~ code),
     across(c(price,value,kilogram),  ~ as.numeric(as.character(.x)) ),
-    table = 1L)%>%
+    table = 1L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -280,13 +334,12 @@ R90P3S02 <- R90P3S02 %>%
     gram = DYCOL03,
     kilogram = DYCOL04,
     price = DYCOL05,
-    value = DYCOL06
-  )%>%
+    value = DYCOL06) %>%
   mutate( DYCOL00 = case_when(
     code == 22111 ~ 22112L,
     code == 22112 ~ 22116L,
     TRUE ~ code),
-    table = 2L)%>%
+    table = 2L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -299,13 +352,12 @@ U90P3S02 <- U90P3S02 %>%
     gram = DYCOL03,
     kilogram = DYCOL04,
     price = DYCOL05,
-    value = DYCOL06
-  )%>%
+    value = DYCOL06) %>%
   mutate( DYCOL00 = case_when(
     code == 22111 ~ 22112L,
     code == 22112 ~ 22116L,
     TRUE ~ code),
-    table = 2L)%>%
+    table = 2L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -318,8 +370,7 @@ R90P3S03 <- R90P3S03 %>%
   rename(
     code = DYCOL01,
     purchased = DYCOL02,
-    value = DYCOL03,
-  )%>%
+    value = DYCOL03) %>%
   mutate(DYCOL00 = case_when(
     code == 31239 ~ 31244L,
     code == 31241 ~ 31245L,
@@ -329,7 +380,7 @@ R90P3S03 <- R90P3S03 %>%
     code == 31259 ~ 31264L,
     code == 31269 ~ 31263L,
     TRUE ~ code),
-    table = 3L)%>%
+    table = 3L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -341,7 +392,7 @@ U90P3S03 <- U90P3S03 %>%
     code = DYCOL01,
     purchased = DYCOL02,
     value = DYCOL03,
-  )%>%
+  ) %>%
   mutate(DYCOL00 = case_when(
     code == 31239 ~ 31244L,
     code == 31241 ~ 31245L,
@@ -351,7 +402,7 @@ U90P3S03 <- U90P3S03 %>%
     code == 31259 ~ 31264L,
     code == 31269 ~ 31263L,
     TRUE ~ code),
-    table = 3L)%>%
+    table = 3L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -366,11 +417,11 @@ R90P3S04 <- R90P3S04 %>%
     mortgage = DYCOL02,
     purchased = DYCOL03,
     value = DYCOL04
-  )%>%
+  ) %>%
   mutate(DYCOL00 = case_when(
     code == 44418 ~ 44419L,
     TRUE ~ code),
-    table = 4L)%>%
+    table = 4L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -383,11 +434,11 @@ U90P3S04 <- U90P3S04 %>%
     mortgage = DYCOL02,
     purchased = DYCOL03,
     value = DYCOL04
-  )%>%
+  ) %>%
   mutate(DYCOL00 = case_when(
     code == 44418 ~ 44419L,
     TRUE ~ code),
-    table = 4L)%>%
+    table = 4L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -404,7 +455,7 @@ R90P3S05 <- R90P3S05 %>%
   mutate( DYCOL00 = case_when(
     code == 52123 ~ 52126L,
     TRUE ~ code),
-    table = 5L)%>%
+    table = 5L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -419,7 +470,7 @@ U90P3S05 <- U90P3S05 %>%
   mutate( DYCOL00 = case_when(
     code == 52123 ~ 52126L,
     TRUE ~ code),
-    table = 5L)%>%
+    table = 5L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -438,7 +489,7 @@ R90P3S06 <- R90P3S06  %>%
     code == 61335 ~ 61338L,
     code == 62329 ~ 62349L,
     TRUE ~ code),
-    table = 6L)%>%
+    table = 6L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -455,7 +506,7 @@ U90P3S06 <- U90P3S06  %>%
     code == 61335 ~ 61338L,
     code == 62329 ~ 62349L,
     TRUE ~ code),
-    table = 6L)%>%
+    table = 6L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -474,7 +525,7 @@ R90P3S07 <- R90P3S07 %>%
   mutate(DYCOL00 = case_when(
     code == 73611 ~ 73615L,
     TRUE ~ code),
-    table = 7L)%>%
+    table = 7L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -489,7 +540,7 @@ U90P3S07 <- U90P3S07 %>%
   mutate(DYCOL00 = case_when(
     code == 73611 ~ 73615L,
     TRUE ~ code),
-    table = 7L)%>%
+    table = 7L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -505,7 +556,7 @@ R90P3S08 <- R90P3S08%>%
     value = DYCOL03,
   ) %>%
   mutate(DYCOL00 = code,
-         table = 8L)%>%
+         table = 8L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -518,7 +569,7 @@ U90P3S08 <- U90P3S08%>%
     value = DYCOL03,
   ) %>%
   mutate(DYCOL00 = code,
-         table = 8L)%>%
+         table = 8L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -531,9 +582,9 @@ R90P3S09 <- R90P3S09 %>%
     code = DYCOL01,
     purchased = DYCOL02,
     value = DYCOL03,
-  )%>%
+  ) %>%
   mutate(DYCOL00 = code,
-         table = 9L)%>%
+         table = 9L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -546,9 +597,9 @@ U90P3S09 <- U90P3S09 %>%
     code = DYCOL01,
     purchased = DYCOL02,
     value = DYCOL03,
-  )%>%
+  ) %>%
   mutate(DYCOL00 = code,
-         table = 9L)%>%
+         table = 9L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -585,7 +636,7 @@ R90P3S11 <- R90P3S11 %>%
     value = DYCOL03,
   ) %>%
   mutate(DYCOL00 = code,
-         table = 11L)%>%
+         table = 11L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -596,9 +647,9 @@ U90P3S11 <- U90P3S11 %>%
     code = DYCOL01,
     purchased = DYCOL02,
     value = DYCOL03,
-  )%>%
+  ) %>%
   mutate(DYCOL00 = code,
-         table = 11L)%>%
+         table = 11L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -612,9 +663,9 @@ R90P3S12 <- R90P3S12 %>%
     code = DYCOL01,
     purchased = DYCOL02,
     value = DYCOL03,
-  )%>%
+  ) %>%
   mutate(DYCOL00 = code,
-         table = 12L)%>%
+         table = 12L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -625,9 +676,9 @@ U90P3S12 <- U90P3S12 %>%
     code = DYCOL01,
     purchased = DYCOL02,
     value = DYCOL03,
-  )%>%
+  ) %>%
   mutate(DYCOL00 = code,
-         table = 12L)%>%
+         table = 12L) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   mutate(value_r=value*100/cpi) %>%
@@ -669,8 +720,7 @@ U90P3S13 <- U90P3S13 %>%
     loanfrom = DYCOL03,
     purchased = DYCOL04,
     cost = DYCOL05,
-    sell = DYCOL06,
-  ) %>%
+    sell = DYCOL06) %>%
   mutate(DYCOL00 = case_when(
     code == 51161 ~ 51160L,
     TRUE ~ code),
@@ -691,8 +741,7 @@ R90P3S14 <- R90P3S14 %>%
     code = DYCOL01,
     purchased = DYCOL02,
     cost = DYCOL03,
-    sell = DYCOL04
-  )%>%
+    sell = DYCOL04) %>%
   mutate(DYCOL00 = code,
          cost = replace_na(cost,0),
          sell = replace_na(sell,0),
@@ -708,8 +757,7 @@ U90P3S14 <- U90P3S14 %>%
     code = DYCOL01,
     purchased = DYCOL02,
     cost = DYCOL03,
-    sell = DYCOL04
-  )%>%
+    sell = DYCOL04) %>%
   mutate(DYCOL00 = code,
          cost = replace_na(cost,0),
          sell = replace_na(sell,0),
@@ -739,7 +787,7 @@ R90P4S01 <- R90P4S01 %>%
     perk_w_m = DYCOL12,
     perk_w_y = DYCOL13,
     netincome_w_m = DYCOL14,
-    netincome_w_y = DYCOL15)%>%
+    netincome_w_y = DYCOL15) %>%
   left_join(month) %>%
   mutate(DYCOL00= NA_integer_) %>%
   left_join(CPI) %>%
@@ -762,7 +810,7 @@ U90P4S01 <- U90P4S01 %>%
     perk_w_m = DYCOL12,
     perk_w_y = DYCOL13,
     netincome_w_m = DYCOL14,
-    netincome_w_y = DYCOL15)%>%
+    netincome_w_y = DYCOL15) %>%
   left_join(month) %>%
   mutate(DYCOL00= NA_integer_) %>%
   left_join(CPI) %>%
@@ -791,7 +839,7 @@ R90P4S02 <- R90P4S02 %>%
     cost_others = DYCOL12,
     cost_tax = DYCOL13,
     sale = DYCOL14,
-    income_s_y = DYCOL15)%>%
+    income_s_y = DYCOL15) %>%
   left_join(month) %>%
   mutate(DYCOL00= NA_integer_) %>%
   left_join(CPI) %>%
@@ -816,7 +864,7 @@ U90P4S02 <- U90P4S02 %>%
     cost_others = DYCOL12,
     cost_tax = DYCOL13,
     sale = DYCOL14,
-    income_s_y = DYCOL15)%>%
+    income_s_y = DYCOL15) %>%
   left_join(month) %>%
   mutate(DYCOL00= NA_integer_) %>%
   left_join(CPI) %>%
@@ -832,7 +880,7 @@ R90P4S03 <- R90P4S03 %>%
     income_interest = DYCOL05,
     income_aid = DYCOL06,
     income_resale = DYCOL07,
-    income_transfer = DYCOL08)%>%
+    income_transfer = DYCOL08) %>%
   left_join(month) %>%
   mutate(DYCOL00= NA_integer_) %>%
   left_join(CPI) %>%
@@ -847,7 +895,7 @@ U90P4S03 <- U90P4S03 %>%
     income_interest = DYCOL05,
     income_aid = DYCOL06,
     income_resale = DYCOL07,
-    income_transfer = DYCOL08)%>%
+    income_transfer = DYCOL08) %>%
   left_join(month) %>%
   mutate(DYCOL00= NA_integer_) %>%
   left_join(CPI) %>%
@@ -861,7 +909,7 @@ R90P4S04 <- R90P4S04 %>%
     member = Dycol01,
     subsidy_number = Dycol03,
     subsidy_month = Dycol04,
-    subsidy = Dycol05)%>%
+    subsidy = Dycol05) %>%
   left_join(month) %>%
   mutate(DYCOL00= NA_integer_) %>%
   left_join(CPI) %>%
@@ -873,7 +921,7 @@ U90P4S04 <- U90P4S04 %>%
     member = Dycol01,
     subsidy_number = Dycol03,
     subsidy_month = Dycol04,
-    subsidy = Dycol05)%>%
+    subsidy = Dycol05) %>%
   left_join(month) %>%
   mutate(DYCOL00= NA_integer_) %>%
   left_join(CPI) %>%
@@ -912,7 +960,7 @@ itemcode <- read_excel("itemlabels.xlsx") %>%
   select(gcode, Label, LabelFA)
 itemcode$item <- factor(itemcode$gcode, levels = itemcode$gcode, labels = itemcode$Label)
 
-EXP90 <- bind_rows(R90P3,U90P3)%>%
+EXP90 <- bind_rows(R90P3,U90P3) %>%
   rename(gcode = DYCOL00) %>%
   mutate(urban = as.factor(urban), 
          recallperiod=ifelse(table>12,1/12,1)) %>%
@@ -958,9 +1006,8 @@ DT <- DT[,.('employed_w'= first(employed_w),
             'perk_w_m'= sum(perk_w_m, na.rm = T),
             'perk_w_y'= sum(perk_w_y, na.rm = T),
             'netincome_w_m'= sum(netincome_w_m, na.rm = T),
-            'netincome_w_y'= sum(netincome_w_y, na.rm = T)
-),
-by=.(Address, member)]
+            'netincome_w_y'= sum(netincome_w_y, na.rm = T)),
+         by=.(Address, member)]
 R90P4S01_unique <- as.data.frame(DT) %>%
   mutate(across(c(hours_w,days_w), ~ifelse(.x == 0,NA,.x)))
 
@@ -978,9 +1025,8 @@ DT <- DT[,.('employed_s'= first(employed_s),
             'cost_machinery'= sum(cost_machinery, na.rm = T),
             'cost_others'= sum(cost_others, na.rm = T),
             'cost_tax'= sum(cost_tax, na.rm = T),
-            'sale'= sum(sale, na.rm = T)
-),
-by=.(Address, member)]
+            'sale'= sum(sale, na.rm = T)),
+         by=.(Address, member)]
 
 R90P4S02_unique <- as.data.frame(DT) %>%
   mutate(across(c(hours_s,days_s), ~ifelse(.x == 0,NA,.x)))
@@ -991,18 +1037,16 @@ DT <- DT[,.('income_pension'= sum(income_pension, na.rm = T),
             'income_interest'= sum(income_interest, na.rm = T),
             'income_aid'= sum(income_aid, na.rm = T),
             'income_resale'= sum(income_resale, na.rm = T),
-            'income_transfer'= sum(income_transfer, na.rm = T)
-),
-by=.(Address, member)]
+            'income_transfer'= sum(income_transfer, na.rm = T)),
+         by=.(Address, member)]
 R90P4S03_unique <- as.data.frame(DT) 
 
 
 DT <- data.table(R90P4S04)
 DT <- DT[,.('subsidy_number'= sum(subsidy_number, na.rm = T),
             'subsidy_month'= sum(subsidy_month, na.rm = T),
-            'subsidy'= sum(subsidy, na.rm = T)
-),
-by=.(Address, member)]
+            'subsidy'= sum(subsidy, na.rm = T)),
+         by=.(Address, member)]
 R90P4S04_unique <- as.data.frame(DT) 
 
 
@@ -1020,9 +1064,8 @@ DT <- DT[,.('employed_w'= first(employed_w),
             'perk_w_m'= sum(perk_w_m, na.rm = T),
             'perk_w_y'= sum(perk_w_y, na.rm = T),
             'netincome_w_m'= sum(netincome_w_m, na.rm = T),
-            'netincome_w_y'= sum(netincome_w_y, na.rm = T)
-),
-by=.(Address, member)]
+            'netincome_w_y'= sum(netincome_w_y, na.rm = T)),
+         by=.(Address, member)]
 U90P4S01_unique <- as.data.frame(DT) %>%
   mutate(across(c(hours_w,days_w), ~ifelse(.x == 0,NA,.x)))
 
@@ -1041,9 +1084,8 @@ DT <- DT[,.('employed_s'= first(employed_s),
             'cost_machinery'= sum(cost_machinery, na.rm = T),
             'cost_others'= sum(cost_others, na.rm = T),
             'cost_tax'= sum(cost_tax, na.rm = T),
-            'sale'= sum(sale, na.rm = T)
-),
-by=.(Address, member)]
+            'sale'= sum(sale, na.rm = T)),
+         by=.(Address, member)]
 U90P4S02_unique <- as.data.frame(DT) %>%
   mutate(across(c(hours_s,days_s), ~ifelse(.x == 0,NA,.x)))
 
@@ -1053,22 +1095,20 @@ DT <- DT[,.('income_pension'= sum(income_pension, na.rm = T),
             'income_interest'= sum(income_interest, na.rm = T),
             'income_aid'= sum(income_aid, na.rm = T),
             'income_resale'= sum(income_resale, na.rm = T),
-            'income_transfer'= sum(income_transfer, na.rm = T)
-),
-by=.(Address, member)]
+            'income_transfer'= sum(income_transfer, na.rm = T)),
+         by=.(Address, member)]
 U90P4S03_unique <- as.data.frame(DT) 
 
 DT <- data.table(U90P4S04)
 DT <- DT[,.('subsidy_number'= sum(subsidy_number, na.rm = T),
             'subsidy_month'= sum(subsidy_month, na.rm = T),
-            'subsidy'= sum(subsidy, na.rm = T)
-),
-by=.(Address, member)]
+            'subsidy'= sum(subsidy, na.rm = T)),
+         by=.(Address, member)]
 U90P4S04_unique <- as.data.frame(DT) 
 
 
 Rind90 <- r90data  %>%
-  left_join(R90P1) %>%
+  left_join(select(R90P1,-degree)) %>%
   left_join(R90P4S01_unique) %>%
   left_join(R90P4S02_unique) %>%
   left_join(R90P4S03_unique) %>% 
@@ -1077,7 +1117,7 @@ Rind90 <- r90data  %>%
   mutate(urban = "R")
 
 Uind90 <- u90data %>%
-  left_join(U90P1) %>%
+  left_join(select(U90P1,-degree)) %>%
   left_join(U90P4S01_unique) %>%
   left_join(U90P4S02_unique) %>%
   left_join(U90P4S03_unique) %>% 
@@ -1086,9 +1126,15 @@ Uind90 <- u90data %>%
   mutate(urban = "U")
 
 
-IND90 <- bind_rows(Rind90,Uind90)%>%
+IND90 <- bind_rows(Rind90,Uind90) %>%
   mutate(urban = as.factor(urban),
-         DYCOL00 = NA_integer_ ) %>%
+         DYCOL00 = NA_integer_,
+         employed_w = factor(employed_w, levels = c(1,2), labels = c("Yes","No")),
+         status_w = factor(status_w, levels = c(1,2,3), labels = c("public","cooperative","private")),
+         employed_s = factor(employed_s, levels = c(1,2), labels = c("Yes","No")),
+         status_s = factor(status_s, levels = c(1,2,3), labels = c("employer","selfemployed","familyworker")),
+         agriculture = factor(agriculture, levels = c(1,2), labels = c("agriculture","nonagriculture"))
+         ) %>%
   left_join(month) %>%
   left_join(CPI) %>%
   select(Address:urban, cpi_m = cpi, cpi_y) %>%
@@ -1200,12 +1246,12 @@ u90p3 <- U90P3 %>%
 r_NM_housing <- R90P3S04 %>%
   filter(DYCOL00 %/% 1000 == 42) %>%
   group_by(Address) %>%
-  summarize(income_nm_house = sum(value, na.rm = T))
+  summarize(income_nm_house = sum(value*12, na.rm = T))
 
 u_NM_housing <- U90P3S04 %>%
   filter(DYCOL00 %/% 1000 == 42) %>%
   group_by(Address) %>%
-  summarize(income_nm_house = sum(value, na.rm = T))
+  summarize(income_nm_house = sum(value*12, na.rm = T))
 
 r_NMincome <- R90P3 %>%
   mutate(type = case_when(
@@ -1214,9 +1260,10 @@ r_NMincome <- R90P3 %>%
     purchased == 6 ~ "agriculture",
     purchased == 7 ~ "nonagriculture", 
     purchased %in% c(2,8) ~ "miscellaneous",
-    TRUE ~ NA_character_)) %>%
+    TRUE ~ NA_character_),
+    recallperiod=ifelse(table>12,1,12)) %>%
   group_by(Address, type) %>%
-  summarize(value = sum(value, na.rm = T)) %>%
+  summarize(value = sum(value*recallperiod, na.rm = T)) %>%
   filter(!is.na(type)&value!=0) %>% 
   pivot_wider(Address, 
               names_from="type", names_prefix = "income_nm_", 
@@ -1231,9 +1278,10 @@ u_NMincome <- U90P3 %>%
     purchased == 6 ~ "agriculture",
     purchased == 7 ~ "nonagriculture", 
     purchased %in% c(2,8) ~ "miscellaneous",
-    TRUE ~ NA_character_)) %>%
+    TRUE ~ NA_character_),
+    recallperiod=ifelse(table>12,1,12)) %>%
   group_by(Address, type) %>%
-  summarize(value = sum(value, na.rm = T)) %>%
+  summarize(value = sum(value*recallperiod, na.rm = T)) %>%
   filter(!is.na(type)&value!=0) %>% 
   pivot_wider(Address, 
               names_from="type", names_prefix = "income_nm_", 
@@ -1278,9 +1326,8 @@ DT <- DT[,.('income_w_y'= sum(income_w_y, na.rm = T),
             'income_aid'= sum(income_aid, na.rm = T),
             'income_resale'= sum(income_resale, na.rm = T),
             'income_transfer'= sum(income_transfer, na.rm = T),
-            'subsidy'= sum(subsidy, na.rm = T)
-),
-by=.(Address)]
+            'subsidy'= sum(subsidy, na.rm = T)),
+         by=.(Address)]
 u_incomeSum <- as.data.frame(DT)
 
 # merging household-level data
@@ -1292,7 +1339,7 @@ RHH90 <- r90data %>%
   left_join(r90p3, by = "Address") %>%
   left_join(r_incomeSum, by = "Address") %>%
   left_join(r_NMincome, by = "Address") %>%
-  left_join(R90P2) %>%
+  left_join(select(R90P2,-DYCOL02)) %>%
   mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 UHH90 <- u90data %>% 
@@ -1303,7 +1350,7 @@ UHH90 <- u90data %>%
   left_join(u90p3, by = "Address") %>%
   left_join(u_incomeSum, by = "Address") %>%
   left_join(u_NMincome, by = "Address") %>%
-  left_join(U90P2) %>%
+  left_join(select(U90P2,-DYCOL02)) %>%
   mutate(across(income_w_y:income_nm_house, ~replace_na(.x, 0)))
 
 HH90 <- bind_rows(RHH90, UHH90) %>%
