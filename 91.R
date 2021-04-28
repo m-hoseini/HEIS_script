@@ -18,16 +18,14 @@ Province <- c(Markazi="00", Gilan="01", Mazandaran="02", AzarbaijanSharghi="03",
 R91_weight<-Sum_R91 %>% select(ADDRESS, weight) %>% rename(Address = ADDRESS) %>% mutate_if(is.character, as.numeric)
 R91Data <- R91Data %>% 
   rename(month = MahMorajeh, khanevartype = NoeKhn) %>%
-  mutate(province = fct_recode(as.factor(substr(Address, 2, 3)), !!!Province),
-         town = as.integer(substr(Address, 4, 5))) %>%
+  mutate(province = fct_recode(as.factor(substr(Address, 2, 3)), !!!Province)) %>%
   left_join(R91_weight)
 
 
 U91_weight<-Sum_U91 %>% select(ADDRESS, weight) %>% rename(Address = ADDRESS) %>% mutate_if(is.character, as.numeric)
 U91Data <- U91Data %>% 
   rename(month = MahMorajeh, khanevartype = NoeKhn) %>%
-  mutate(province = fct_recode(as.factor(substr(Address, 2, 3)), !!!Province),
-         town = as.integer(substr(Address, 4, 5))) %>%
+  mutate(province = fct_recode(as.factor(substr(Address, 2, 3)), !!!Province)) %>%
   left_join(U91_weight)
 
 ##############################
@@ -709,6 +707,21 @@ U91P3S14 <- U91P3S14 %>%
   mutate(value_r=value*100/cpi_y) %>%
   select(Address:table, value_r)
 
+
+list2env(lapply(mget(ls(pattern = "P3S.*")),
+                function(x) {x %>% mutate(purchased=factor(purchased,
+                                                   levels = c(1,2,3,4,5,6,7,8),
+                                                   labels = c("purchased",
+                                                              "homemade",
+                                                              "publicservice",
+                                                              "cooperativeservice",
+                                                              "privateservice",
+                                                              "agriculture",
+                                                              "nonagriculture",
+                                                              "free")))} )
+         , .GlobalEnv)
+
+
 #############################
 # Part 4, Table 1
 
@@ -903,8 +916,23 @@ itemcode$item <- factor(itemcode$gcode, levels = itemcode$gcode, labels = itemco
 EXP91 <- bind_rows(R91P3,U91P3) %>%
   rename(gcode = DYCOL00) %>%
   mutate(urban = as.factor(urban), 
-         recallperiod=ifelse(table>12,1/12,1)) %>%
-  group_by(table, gcode, code, urban) %>%
+         recallperiod=ifelse(table>12,1/12,1),
+         Table = case_when(
+           table == 1 ~ "food",
+           table == 2 ~ "tobacco",
+           table == 3 ~ "clothing",
+           table == 4 ~ "housing",
+           table == 5 ~ "appliances",
+           table == 6 ~ "health",
+           table == 7 ~ "transport",
+           table == 8 ~ "communication",
+           table == 9 ~ "recreation",
+           table == 11 ~ "restaurant",
+           table == 12 ~ "miscellaneous",
+           table == 13 ~ "durables",
+           table == 14 ~ "investment",
+           TRUE ~ NA_character_)) %>%
+  group_by(Table, gcode, code, urban) %>%
   summarize(Value = sum(value*weight*recallperiod, na.rm = T),
             Value_r = sum(value_r*weight*recallperiod, na.rm = T),
             Kilogram = sum(kilogram*weight, na.rm = T),
@@ -915,7 +943,7 @@ EXP91 <- bind_rows(R91P3,U91P3) %>%
   select(-Label, -LabelFA) %>%
   as.data.frame()
 
-attr(EXP91$table, "label") <- "table number in Part 3"
+attr(EXP91$Table, "label") <- "Table in Part 3"
 attr(EXP91$gcode, "label") <- "global item code"
 attr(EXP91$code, "label") <- "item code in this year"
 attr(EXP91$urban, "label") <- "rural or urban"
@@ -1145,7 +1173,7 @@ r91p3 <- R91P3 %>%
     table == 2 ~ "tobacco",
     table == 3 ~ "clothing",
     table == 4 ~ "housing",
-    table == 5 ~ "furniture",
+    table == 5 ~ "appliances",
     table == 6 ~ "health",
     table == 7 ~ "transport",
     table == 8 ~ "communication",
@@ -1169,7 +1197,7 @@ u91p3 <- U91P3 %>%
     table == 2 ~ "tobacco",
     table == 3 ~ "clothing",
     table == 4 ~ "housing",
-    table == 5 ~ "furniture",
+    table == 5 ~ "appliances",
     table == 6 ~ "health",
     table == 7 ~ "transport",
     table == 8 ~ "communication",
@@ -1200,11 +1228,11 @@ u_NM_housing <- U91P3S04 %>%
 
 r_NMincome <- R91P3 %>%
   mutate(type = case_when(
-    purchased %in% 3:4 ~ "public",
-    purchased == 5 ~ "private",
-    purchased == 6 ~ "agriculture",
-    purchased == 7 ~ "nonagriculture", 
-    purchased %in% c(2,8) ~ "miscellaneous",
+    purchased %in% c("publicservice","cooperativeservice") ~ "public",
+    purchased == "privateservice" ~ "private",
+    purchased == "agriculture" ~ "agriculture",
+    purchased == "nonagriculture" ~ "nonagriculture", 
+    purchased %in% c("free","homemade") ~ as.character(purchased),
     TRUE ~ NA_character_),
     recallperiod=ifelse(table>12,1,12)) %>%
   group_by(Address, type) %>%
@@ -1218,11 +1246,11 @@ r_NMincome[is.na(r_NMincome)] <- 0
 
 u_NMincome <- U91P3 %>%
   mutate(type = case_when(
-    purchased %in% 3:4 ~ "public",
-    purchased == 5 ~ "private",
-    purchased == 6 ~ "agriculture",
-    purchased == 7 ~ "nonagriculture", 
-    purchased %in% c(2,8) ~ "miscellaneous",
+    purchased %in% c("publicservice","cooperativeservice") ~ "public",
+    purchased == "privateservice" ~ "private",
+    purchased == "agriculture" ~ "agriculture",
+    purchased == "nonagriculture" ~ "nonagriculture", 
+    purchased %in% c("free","homemade") ~ as.character(purchased),
     TRUE ~ NA_character_),
     recallperiod=ifelse(table>12,1,12)) %>%
   group_by(Address, type) %>%
@@ -1301,9 +1329,9 @@ UHH91 <- u91data %>%
 
 HH91 <- bind_rows(RHH91, UHH91) %>%
   mutate(urban = as.factor(urban)) %>%
-  mutate(expenditure = cost_food + cost_tobacco + cost_clothing + cost_housing + cost_furniture + cost_health + cost_transport + cost_communication + cost_recreation +  cost_restaurant + cost_miscellaneous
+  mutate(expenditure = cost_food + cost_tobacco + cost_clothing + cost_housing + cost_appliances + cost_health + cost_transport + cost_communication + cost_recreation +  cost_restaurant + cost_miscellaneous
          + cost_durables/12 + cost_investment/12,
-         income = income_s_y + netincome_w_y + income_pension + income_rent + income_interest + income_aid + income_transfer + subsidy + income_nm_agriculture + income_nm_miscellaneous + income_nm_public + income_nm_private + income_nm_nonagriculture + income_nm_house,
+         income = income_s_y + netincome_w_y + income_pension + income_rent + income_interest + income_aid + income_transfer + subsidy + income_nm_agriculture + income_nm_free + income_nm_homemade + income_nm_public + income_nm_private + income_nm_nonagriculture + income_nm_house,
          DYCOL00 = NA_integer_ 
   ) %>%
   left_join(month) %>%
@@ -1329,7 +1357,7 @@ attr(HH91$income_nm_agriculture, "label") <- "Non-monetary income from agricultu
 attr(HH91$income_nm_nonagriculture, "label") <- "Non-monetary income from nonagriculture"
 attr(HH91$income_nm_public, "label") <- "Non-monetary income from public sector job"
 attr(HH91$income_nm_private, "label") <- "Non-monetary income from private sector job"
-attr(HH91$income_nm_miscellaneous, "label") <- "Non-monetary income from other sources (home production, free)"
+attr(HH91$income_nm_homemade, "label") <- "Non-monetary income from home production"
 attr(HH91$netincome_w_m, "label") <- "wage-earning job: net income previous month"
 attr(HH91$netincome_w_y, "label") <- "wage-earning job: net income previous year"
 attr(HH91$income_w_y, "label") <- "wage-earning job: gross income previous year"

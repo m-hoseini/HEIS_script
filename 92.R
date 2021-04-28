@@ -724,6 +724,21 @@ U92P3S14 <- U92P3S14 %>%
   mutate(value_r=value*100/cpi_y) %>%
   select(Address:table, value_r)
 
+
+list2env(lapply(mget(ls(pattern = "P3S.*")),
+                function(x) {x %>% mutate(purchased=factor(purchased,
+                                                   levels = c(1,2,3,4,5,6,7,8),
+                                                   labels = c("purchased",
+                                                              "homemade",
+                                                              "publicservice",
+                                                              "cooperativeservice",
+                                                              "privateservice",
+                                                              "agriculture",
+                                                              "nonagriculture",
+                                                              "free")))} )
+         , .GlobalEnv)
+
+
 #############################
 # Part 4, Table 1
 
@@ -914,8 +929,23 @@ itemcode$item <- factor(itemcode$gcode, levels = itemcode$gcode, labels = itemco
 EXP92 <- bind_rows(R92P3,U92P3)%>%
   rename(gcode = DYCOL00) %>%
   mutate(urban = as.factor(urban), 
-         recallperiod=ifelse(table>12,1/12,1)) %>%
-  group_by(table, gcode, code, urban) %>%
+         recallperiod=ifelse(table>12,1/12,1),
+         Table = case_when(
+           table == 1 ~ "food",
+           table == 2 ~ "tobacco",
+           table == 3 ~ "clothing",
+           table == 4 ~ "housing",
+           table == 5 ~ "appliances",
+           table == 6 ~ "health",
+           table == 7 ~ "transport",
+           table == 8 ~ "communication",
+           table == 9 ~ "recreation",
+           table == 11 ~ "restaurant",
+           table == 12 ~ "miscellaneous",
+           table == 13 ~ "durables",
+           table == 14 ~ "investment",
+           TRUE ~ NA_character_)) %>%
+  group_by(Table, gcode, code, urban) %>%
   summarize(Value = sum(value*weight*recallperiod, na.rm = T),
             Value_r = sum(value_r*weight*recallperiod, na.rm = T),
             Kilogram = sum(kilogram*weight, na.rm = T),
@@ -926,7 +956,7 @@ EXP92 <- bind_rows(R92P3,U92P3)%>%
   select(-Label, -LabelFA) %>%
   as.data.frame()
 
-attr(EXP92$table, "label") <- "table number in Part 3"
+attr(EXP92$Table, "label") <- "Table in Part 3"
 attr(EXP92$gcode, "label") <- "global item code"
 attr(EXP92$code, "label") <- "item code in this year"
 attr(EXP92$urban, "label") <- "rural or urban"
@@ -1080,7 +1110,7 @@ Uind92 <- u92data %>%
 Uind92$ISIC_w<- as.numeric(levels(Uind92$ISIC_w))[Uind92$ISIC_w]
 Uind92$ISCO_w<- as.numeric(levels(Uind92$ISCO_w))[Uind92$ISCO_w]
 
-IND92 <- bind_rows(Rind92,Uind92)%>%
+IND92 <- bind_rows(Rind92,Uind92) %>%
   mutate(urban = as.factor(urban),
          DYCOL00 = NA_integer_,
          employed_w = factor(employed_w, levels = c(1,2), labels = c("Yes","No")),
@@ -1155,7 +1185,7 @@ r92p3 <- R92P3 %>%
     table == 2 ~ "tobacco",
     table == 3 ~ "clothing",
     table == 4 ~ "housing",
-    table == 5 ~ "furniture",
+    table == 5 ~ "appliances",
     table == 6 ~ "health",
     table == 7 ~ "transport",
     table == 8 ~ "communication",
@@ -1179,7 +1209,7 @@ u92p3 <- U92P3 %>%
     table == 2 ~ "tobacco",
     table == 3 ~ "clothing",
     table == 4 ~ "housing",
-    table == 5 ~ "furniture",
+    table == 5 ~ "appliances",
     table == 6 ~ "health",
     table == 7 ~ "transport",
     table == 8 ~ "communication",
@@ -1210,11 +1240,11 @@ u_NM_housing <- U92P3S04 %>%
 
 r_NMincome <- R92P3 %>%
   mutate(type = case_when(
-    purchased %in% 3:4 ~ "public",
-    purchased == 5 ~ "private",
-    purchased == 6 ~ "agriculture",
-    purchased == 7 ~ "nonagriculture", 
-    purchased %in% c(2,8) ~ "miscellaneous",
+    purchased %in% c("publicservice","cooperativeservice") ~ "public",
+    purchased == "privateservice" ~ "private",
+    purchased == "agriculture" ~ "agriculture",
+    purchased == "nonagriculture" ~ "nonagriculture", 
+    purchased %in% c("free","homemade") ~ as.character(purchased),
     TRUE ~ NA_character_),
     recallperiod=ifelse(table>12,1,12)) %>%
   group_by(Address, type) %>%
@@ -1228,11 +1258,11 @@ r_NMincome[is.na(r_NMincome)] <- 0
 
 u_NMincome <- U92P3 %>%
   mutate(type = case_when(
-    purchased %in% 3:4 ~ "public",
-    purchased == 5 ~ "private",
-    purchased == 6 ~ "agriculture",
-    purchased == 7 ~ "nonagriculture", 
-    purchased %in% c(2,8) ~ "miscellaneous",
+    purchased %in% c("publicservice","cooperativeservice") ~ "public",
+    purchased == "privateservice" ~ "private",
+    purchased == "agriculture" ~ "agriculture",
+    purchased == "nonagriculture" ~ "nonagriculture", 
+    purchased %in% c("free","homemade") ~ as.character(purchased),
     TRUE ~ NA_character_),
     recallperiod=ifelse(table>12,1,12)) %>%
   group_by(Address, type) %>%
@@ -1310,9 +1340,9 @@ UHH92 <- u92data %>%
 
 HH92 <- bind_rows(RHH92, UHH92) %>%
   mutate(urban = as.factor(urban)) %>%
-  mutate(expenditure = cost_food + cost_tobacco + cost_clothing + cost_housing + cost_furniture + cost_health + cost_transport + cost_communication + cost_recreation +  cost_restaurant + cost_miscellaneous
+  mutate(expenditure = cost_food + cost_tobacco + cost_clothing + cost_housing + cost_appliances + cost_health + cost_transport + cost_communication + cost_recreation +  cost_restaurant + cost_miscellaneous
          + cost_durables/12 + cost_investment/12,
-         income = income_s_y + netincome_w_y + income_pension + income_rent + income_interest + income_aid + income_transfer + subsidy + income_nm_agriculture + income_nm_miscellaneous + income_nm_public + income_nm_private + income_nm_nonagriculture + income_nm_house,
+         income = income_s_y + netincome_w_y + income_pension + income_rent + income_interest + income_aid + income_transfer + subsidy + income_nm_agriculture + income_nm_free + income_nm_homemade + income_nm_public + income_nm_private + income_nm_nonagriculture + income_nm_house,
          DYCOL00 = NA_integer_ 
   ) %>%
   left_join(month) %>%
@@ -1338,7 +1368,7 @@ attr(HH92$income_nm_agriculture, "label") <- "Non-monetary income from agricultu
 attr(HH92$income_nm_nonagriculture, "label") <- "Non-monetary income from nonagriculture"
 attr(HH92$income_nm_public, "label") <- "Non-monetary income from public sector job"
 attr(HH92$income_nm_private, "label") <- "Non-monetary income from private sector job"
-attr(HH92$income_nm_miscellaneous, "label") <- "Non-monetary income from other sources (home production, free)"
+attr(HH92$income_nm_homemade, "label") <- "Non-monetary income from home production"
 attr(HH92$netincome_w_m, "label") <- "wage-earning job: net income previous month"
 attr(HH92$netincome_w_y, "label") <- "wage-earning job: net income previous year"
 attr(HH92$income_w_y, "label") <- "wage-earning job: gross income previous year"
